@@ -144,3 +144,6 @@ See [CHANGELOG.md](CHANGELOG.md) for details.
   * Copyright (c) 2013- Naotoshi SEO (sonots)
 * License
   * Apache License, Version 2.0
+=======
+# fluent-plugin-row_wise-groupcounter
+Updated groupcounter plugin for fluentd v12 and above. 
