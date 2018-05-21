@@ -22,6 +22,7 @@ class Fluent::GroupCounterOutput < Fluent::Output
   config_param :max_key, :string, :default => nil
   config_param :min_key, :string, :default => nil
   config_param :avg_key, :string, :default => nil
+  config_param :sum_key, :string, :default => nil
   config_param :delimiter, :string, :default => '_'
   config_param :count_suffix, :string, :default => '_count'
   config_param :max_suffix, :string, :default => '_max'
@@ -126,6 +127,7 @@ class Fluent::GroupCounterOutput < Fluent::Output
       dict["count"] = count[:count] if count[:count]
       dict["min"] = count[:min] if count[:min]
       dict["max"] = count[:max] if count[:max]
+      dict["sum"] = count[:csum] if count[:csum]
       dict["avg"] = count[:sum] / (count[:count] * 1.0) if count[:sum] and count[:count] > 0
       group_key_with = group_key.empty? ? "" : group_key + @delimiter
       output.push(dict)
@@ -136,7 +138,6 @@ class Fluent::GroupCounterOutput < Fluent::Output
       # output[key_prefix + group_key_with + "rate"] = ((count[:count] * 100.0) / (1.00 * step)).floor / 100.0
       # output[key_prefix + group_key_with + "percentage"] = count[:count] * 100.0 / (1.00 * total_count) if total_count > 0
     end
-
     output
   end
 
@@ -146,7 +147,7 @@ class Fluent::GroupCounterOutput < Fluent::Output
 
       output_pairs = []
       counts.keys.each do |tag|
-        #output_pairs[stripped_tag(tag)] = generate_fields(counts[tag])
+        output_pairs[stripped_tag(tag)] = generate_fields(counts[tag])
       end
       output_pairs
     else
@@ -212,6 +213,7 @@ class Fluent::GroupCounterOutput < Fluent::Output
       count = {}
       count[:count] = 1
       count[:sum] = record[@avg_key].to_f if @avg_key and record[@avg_key]
+      count[:csum] = record[@sum_key].to_f if @sum_key and record[@sum_key]
       count[:max] = record[@max_key].to_f if @max_key and record[@max_key]
       count[:min] = record[@min_key].to_f if @min_key and record[@min_key]
 
@@ -246,6 +248,7 @@ class Fluent::GroupCounterOutput < Fluent::Output
   def countup(counts, count)
     counts[:count] = sum(counts[:count], count[:count])
     counts[:sum]   = sum(counts[:sum], count[:sum]) if @avg_key and count[:sum]
+    counts[:csum]  = sum(counts[:csum], count[:csum]) if @sum_key and count[:csum]
     counts[:max]   = max(counts[:max], count[:max]) if @max_key and count[:max]
     counts[:min]   = min(counts[:min], count[:min]) if @min_key and count[:min]
   end
@@ -268,6 +271,12 @@ class Fluent::GroupCounterOutput < Fluent::Output
   end
 
   def sum(a, b)
+    a ||= 0
+    b ||= 0
+    a + b
+  end
+
+  def csum(a, b)
     a ||= 0
     b ||= 0
     a + b
